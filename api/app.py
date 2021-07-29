@@ -23,13 +23,19 @@ def login():
     cursor.execute(sql_query)
     user = list(cursor.fetchall())
     if len(user)==0:
-      return jsonify({'msg':'用户不存在','code':502})
+      return jsonify({'msg':'用户不存在','status':502})
     else:
-      password = list(user[0])[2]
+      user = list(user[0])
+      password = user[2]
+      user_data = {
+        'id': user[0],
+        'name': user[1],
+        'phone': user[3],
+      }
       if password == request.form['password']:
-        return jsonify({'msg':'登陆成功','code':200})
+        return jsonify({'msg':'登陆成功','status':200,'data':user_data})
       else:
-        return jsonify({'msg':'密码错误','code':202})
+        return jsonify({'msg':'密码错误','status':202})
 
 
 @app.route('/api/register',methods=['POST'])
@@ -44,9 +50,14 @@ def register():
       sql_insert = "INSERT INTO user(name,password,phone) VALUE('%s','%s','%s')" % (request.form['name'],request.form['password'],request.form['phone'])
       cursor.execute(sql_insert)
       db.commit()
-      return jsonify({'msg':'注册成功','code':200})
+      return jsonify({'msg':'注册成功','status':200})
     else:
-      return jsonify({'msg':'用户已存在','code':502})
+      return jsonify({'msg':'用户已存在','status':502})
+
+@app.route('/api/storage',methods=['GET'])
+def storage():
+  data = [{'name':'111','size':'18','brand':'Nike'}]
+  return jsonify({'msg':'库存查询成功','status':200,'data':data})
 
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=8000, debug=True)
