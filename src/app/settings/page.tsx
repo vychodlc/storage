@@ -1,12 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Card, Form, Input, Switch, Select, Button, message, Divider, Typography } from 'antd';
-import { ProCard } from '@ant-design/pro-components';
+import { Card, Form, Input, InputNumber, Switch, Button, message, Divider, Typography } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
-const { Option } = Select;
 
 export default function SettingsPage() {
   const [form] = Form.useForm();
@@ -16,68 +14,45 @@ export default function SettingsPage() {
   };
 
   return (
-    <ProCard>
+    <div>
       <Title level={3}>系统设置</Title>
 
       <Card title="基本设置" style={{ marginBottom: 16 }}>
-        <Form form={form} layout="vertical" initialValues={{ language: 'zh-CN', timezone: 'Asia/Shanghai' }}>
-          <Form.Item label="系统名称" name="systemName">
-            <Input placeholder="工厂生产管理系统" />
+        <Form form={form} layout="vertical" initialValues={{ lowStockThreshold: 50 }}>
+          <Form.Item label="工厂名称" name="factoryName">
+            <Input placeholder="古楼山竹筷厂" />
           </Form.Item>
 
-          <Form.Item label="语言" name="language">
-            <Select>
-              <Option value="zh-CN">简体中文</Option>
-              <Option value="en-US">English</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item label="时区" name="timezone">
-            <Select>
-              <Option value="Asia/Shanghai">中国标准时间 (Asia/Shanghai)</Option>
-              <Option value="Asia/Tokyo">日本标准时间 (Asia/Tokyo)</Option>
-              <Option value="UTC">UTC</Option>
-            </Select>
+          <Form.Item
+            label="低库存预警阈值"
+            name="lowStockThreshold"
+            extra="库存低于此数量时显示预警"
+          >
+            <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Card>
 
-      <Card title="通知设置" style={{ marginBottom: 16 }}>
-        <Form layout="vertical" initialValues={{ emailNotify: true, smsNotify: false, lowStockAlert: true }}>
-          <Form.Item label="邮件通知" name="emailNotify" valuePropName="checked">
-            <Switch />
+      <Card title="库存设置" style={{ marginBottom: 16 }}>
+        <Form layout="vertical">
+          <Form.Item label="竹丝低库存阈值" name="bambooLowStock">
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="50" />
           </Form.Item>
 
-          <Form.Item label="短信通知" name="smsNotify" valuePropName="checked">
-            <Switch />
+          <Form.Item label="竹筷低库存阈值" name="chopstickLowStock">
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="50" />
           </Form.Item>
+        </Form>
+      </Card>
 
+      <Card title="提醒设置">
+        <Form layout="vertical" initialValues={{ lowStockAlert: true, pendingPaymentAlert: true }}>
           <Form.Item label="低库存预警" name="lowStockAlert" valuePropName="checked">
             <Switch />
           </Form.Item>
 
-          <Form.Item label="设备维护提醒" name="maintenanceAlert" valuePropName="checked">
+          <Form.Item label="待付款提醒" name="pendingPaymentAlert" valuePropName="checked">
             <Switch />
-          </Form.Item>
-        </Form>
-      </Card>
-
-      <Card title="邮箱配置">
-        <Form layout="vertical">
-          <Form.Item label="SMTP服务器" name="smtpServer">
-            <Input placeholder="smtp.example.com" />
-          </Form.Item>
-
-          <Form.Item label="端口" name="port">
-            <Input placeholder="587" />
-          </Form.Item>
-
-          <Form.Item label="用户名" name="username">
-            <Input placeholder="your-email@example.com" />
-          </Form.Item>
-
-          <Form.Item label="密码" name="password">
-            <Input.Password placeholder="请输入密码" />
           </Form.Item>
         </Form>
       </Card>
@@ -89,6 +64,6 @@ export default function SettingsPage() {
           保存设置
         </Button>
       </div>
-    </ProCard>
+    </div>
   );
 }

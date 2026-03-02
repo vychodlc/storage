@@ -3,11 +3,11 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function InventoryIndex() {
+export default function BaseDataIndex() {
   const router = useRouter();
 
   useEffect(() => {
-    router.push('/inventory/bamboo');
+    router.push('/base-data/bamboo-specs');
   }, [router]);
 
   return null;
