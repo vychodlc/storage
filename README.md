@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Storage 工厂生产管理系统
 
-## Getting Started
+基于 Next.js + Ant Design + Pro Components 构建的工厂生产管理系统。
 
-First, run the development server:
+## 功能特性
+
+- 📊 **仪表盘** - 生产数据概览、趋势图表、设备状态
+- 📋 **生产计划** - 生产订单管理、进度跟踪
+- 📦 **库存管理** - 库存监控、低库存预警
+- 🔧 **设备管理** - 设备台账、维护记录
+- ⚙️ **系统设置** - 基础配置
+
+## 技术栈
+
+- **框架**: Next.js 16 (App Router)
+- **UI**: Ant Design 5.x
+- **Pro组件**: @ant-design/pro-components
+- **图表**: Recharts
+- **语言**: TypeScript
+
+## 快速开始
+
+### 安装依赖
+
+```bash
+npm install
+```
+
+### 启动开发服务器
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+访问 [http://localhost:3000](http://localhost:3000) 查看应用。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 构建生产版本
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## 项目结构
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── page.tsx              # 仪表盘
+│   ├── production/page.tsx    # 生产计划
+│   ├── inventory/page.tsx     # 库存管理
+│   ├── equipment/page.tsx     # 设备管理
+│   ├── settings/page.tsx      # 系统设置
+│   ├── layout.tsx            # 根布局
+│   └── globals.css           # 全局样式
+├── components/
+│   └── Layout.tsx            # 主布局组件
+├── types/
+│   └── index.ts              # TypeScript 类型定义
+└── mock/
+    └── data.ts               # 模拟数据
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 页面说明
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 仪表盘
+- 生产统计卡片
+- 月度生产趋势柱状图
+- 库存分类饼图
+- 生产计划和设备状态列表
 
-## Deploy on Vercel
+### 生产计划
+- 生产订单列表
+- 新增/编辑/删除订单
+- 订单状态和进度管理
+- 搜索和筛选功能
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 库存管理
+- 库存物品列表
+- 低库存预警标识
+- 仓库和库位管理
+- 库存分类管理
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 设备管理
+- 设备台账管理
+- 设备状态监控
+- 维护计划管理
+- 设备统计概览
+
+## 参考
+
+- [Next.js 文档](https://nextjs.org/docs)
+- [Ant Design 文档](https://ant.design/)
+- [Pro Components 文档](https://procomponents.ant.design/)
