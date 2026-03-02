@@ -102,24 +102,15 @@ const menuData = [
 ];
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <div style={{ height: '100vh' }}>
       <ProLayout
         siderWidth={216}
         title="古楼山竹筷厂"
-        logo="竹筷"
+        logo={<></>}
         route={{
           path: '/',
           routes: menuData,

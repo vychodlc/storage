@@ -1,47 +1,48 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, Button, Alert, Typography, Spin, message } from 'antd';
+import { Card, Button, Alert, Typography, Spin, message, Divider } from 'antd';
 import { CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import { testConnection, initializeDatabase } from '@/app/actions/dbActions';
+import { testConnection } from '@/app/actions/dbActions';
+import { initAllData } from '@/app/actions/initDataActions';
 
 const { Title, Paragraph } = Typography;
 
 export default function SetupDbPage() {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testResult, setTestResult] = useState<any>(null);
-  const [initResult, setInitResult] = useState<any>(null);
+  const [initDataResult, setInitDataResult] = useState<any>(null);
 
   const handleTestConnection = async () => {
     setLoading(true);
-    setStatus('testing');
     try {
       const result = await testConnection();
       setTestResult(result);
-      setStatus('success');
-      message.success('数据库连接成功！');
+      if (result.success) {
+        message.success('数据库连接成功！');
+      } else {
+        message.error('数据库连接失败');
+      }
     } catch (error) {
-      setTestResult({ error: String(error) });
-      setStatus('error');
+      setTestResult({ success: false, error: String(error) });
       message.error('数据库连接失败');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInitialize = async () => {
-    if (!confirm('确定要初始化数据库吗？这将创建所有表结构。')) {
+  const handleInitData = async () => {
+    if (!confirm('确定要导入初始数据吗？这将导入竹丝规格、竹筷规格、供应商、客户、工人等基础数据。')) {
       return;
     }
     setLoading(true);
     try {
-      const result = await initializeDatabase();
-      setInitResult(result);
-      message.success('数据库初始化成功！');
+      const result = await initAllData();
+      setInitDataResult(result);
+      message.success('初始数据导入成功！');
     } catch (error) {
-      setInitResult({ error: String(error) });
-      message.error('数据库初始化失败');
+      setInitDataResult({ error: String(error) });
+      message.error('数据导入失败');
     } finally {
       setLoading(false);
     }
@@ -58,15 +59,14 @@ export default function SetupDbPage() {
         <Button
           type="primary"
           onClick={handleTestConnection}
-          loading={loading && status === 'testing'}
-          disabled={loading}
+          loading={loading}
         >
           测试连接
         </Button>
 
         {testResult && (
           <div style={{ marginTop: 16 }}>
-            {testResult.error ? (
+            {testResult.error || !testResult.success ? (
               <Alert
                 message="连接失败"
                 description={testResult.error}
@@ -77,7 +77,7 @@ export default function SetupDbPage() {
             ) : (
               <Alert
                 message="连接成功"
-                description={`数据库版本: ${testResult.version || '未知'}`}
+                description="数据库已正常连接"
                 type="success"
                 icon={<CheckCircleOutlined />}
                 showIcon
@@ -87,34 +87,47 @@ export default function SetupDbPage() {
         )}
       </Card>
 
-      <Card title="步骤 2: 初始化数据库" style={{ marginBottom: 16 }}>
+      <Card title="步骤 2: 导入初始数据" style={{ marginBottom: 16 }}>
         <Paragraph>
-          点击下方按钮创建所有数据库表结构。
+          点击下方按钮导入模拟数据到数据库中。
         </Paragraph>
         <Paragraph type="secondary">
-          注意：请先在 Neon SQL Editor 中手动执行 src/lib/schema.sql，因为 Neon 可能需要特殊权限。
+          包括：竹丝规格、竹筷规格、供应商、进货司机、客户、工人、库存等基础数据
         </Paragraph>
         <Button
-          onClick={handleInitialize}
+          type="primary"
+          onClick={handleInitData}
           loading={loading}
-          disabled={status !== 'success'}
+          disabled={testResult && !testResult.success}
         >
-          初始化数据库
+          导入初始数据
         </Button>
 
-        {initResult && (
+        {initDataResult && (
           <div style={{ marginTop: 16 }}>
-            {initResult.error ? (
+            {initDataResult.error ? (
               <Alert
-                message="初始化失败"
-                description={initResult.error}
+                message="导入失败"
+                description={initDataResult.error}
                 type="error"
                 showIcon
               />
             ) : (
               <Alert
-                message="初始化成功"
-                description="数据库表已创建"
+                message="导入成功"
+                description={
+                  <div>
+                    <p>已导入数据：</p>
+                    <ul>
+                      <li>竹丝规格: {initDataResult.bambooSpecs?.count}</li>
+                      <li>竹筷规格: {initDataResult.chopstickSpecs?.count}</li>
+                      <li>供应商: {initDataResult.suppliers?.count}</li>
+                      <li>进货司机: {initDataResult.inboundDrivers?.count}</li>
+                      <li>客户: {initDataResult.customers?.count}</li>
+                      <li>工人: {initDataResult.workers?.count}</li>
+                    </ul>
+                  </div>
+                }
                 type="success"
                 showIcon
               />
@@ -122,6 +135,15 @@ export default function SetupDbPage() {
           </div>
         )}
       </Card>
+
+      <Divider />
+
+      <Alert
+        message="提示"
+        description="Schema 已在 Neon SQL Editor 中执行完成。现在可以开始使用系统了！"
+        type="info"
+        showIcon
+      />
     </div>
   );
 }
