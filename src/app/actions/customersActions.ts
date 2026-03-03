@@ -1,29 +1,29 @@
 'use server';
 
 import { sql } from '@/lib/db';
-import type { Supplier } from '@/types';
+import type { Customer } from '@/types';
 
-export async function getSuppliers(): Promise<Supplier[]> {
+export async function getCustomers(): Promise<Customer[]> {
   const result = await sql`
     SELECT id, name, contact, contact_person as "contactPerson", address, remark, created_at as "createdAt", updated_at as "updatedAt"
-    FROM suppliers
+    FROM customers
     ORDER BY created_at DESC
   `;
-  return result as Supplier[];
+  return result as Customer[];
 }
 
-export async function createSupplier(data: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>): Promise<Supplier> {
+export async function createCustomer(data: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
   const result = await sql`
-    INSERT INTO suppliers (name, contact, contact_person, address, remark)
+    INSERT INTO customers (name, contact, contact_person, address, remark)
     VALUES (${data.name}, ${data.contact}, ${data.contactPerson}, ${data.address}, ${data.remark})
     RETURNING id, name, contact, contact_person as "contactPerson", address, remark, created_at as "createdAt", updated_at as "updatedAt"
   `;
-  return (result as Supplier[])[0];
+  return (result as Customer[])[0];
 }
 
-export async function updateSupplier(id: string, data: Partial<Supplier>): Promise<Supplier | null> {
+export async function updateCustomer(id: string, data: Partial<Customer>): Promise<Customer | null> {
   const current = await sql`
-    SELECT * FROM suppliers WHERE id = ${id}
+    SELECT * FROM customers WHERE id = ${id}
   `;
   if ((current as any[]).length === 0) return null;
 
@@ -35,17 +35,17 @@ export async function updateSupplier(id: string, data: Partial<Supplier>): Promi
   const newRemark = data.remark ?? currentData.remark;
 
   const result = await sql`
-    UPDATE suppliers
+    UPDATE customers
     SET name = ${newName}, contact = ${newContact}, contact_person = ${newContactPerson}, address = ${newAddress}, remark = ${newRemark}
     WHERE id = ${id}
     RETURNING id, name, contact, contact_person as "contactPerson", address, remark, created_at as "createdAt", updated_at as "updatedAt"
   `;
-  return (result as Supplier[])[0] || null;
+  return (result as Customer[])[0] || null;
 }
 
-export async function deleteSupplier(id: string): Promise<boolean> {
+export async function deleteCustomer(id: string): Promise<boolean> {
   const result = await sql`
-    DELETE FROM suppliers WHERE id = ${id}
+    DELETE FROM customers WHERE id = ${id}
   `;
   return (result as any).count > 0;
 }

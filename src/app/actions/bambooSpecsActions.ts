@@ -22,38 +22,23 @@ export async function createBambooSpec(data: Omit<BambooSpec, 'id' | 'createdAt'
 }
 
 export async function updateBambooSpec(id: string, data: Partial<BambooSpec>): Promise<BambooSpec | null> {
-  const setClauses: string[] = [];
-  const values: any[] = [];
-  let paramIndex = 1;
+  const current = await sql`
+    SELECT * FROM bamboo_specs WHERE id = ${id}
+  `;
+  if ((current as any[]).length === 0) return null;
 
-  if (data.size !== undefined) {
-    setClauses.push(`size = $${paramIndex++}`);
-    values.push(data.size);
-  }
-  if (data.name !== undefined) {
-    setClauses.push(`name = $${paramIndex++}`);
-    values.push(data.name);
-  }
-  if (data.remark !== undefined) {
-    setClauses.push(`remark = $${paramIndex++}`);
-    values.push(data.remark);
-  }
-  if (data.isActive !== undefined) {
-    setClauses.push(`is_active = $${paramIndex++}`);
-    values.push(data.isActive);
-  }
+  const currentData = (current as any[])[0];
+  const newSize = data.size ?? currentData.size;
+  const newName = data.name ?? currentData.name;
+  const newRemark = data.remark ?? currentData.remark;
+  const newIsActive = data.isActive ?? currentData.is_active;
 
-  if (setClauses.length === 0) return null;
-
-  values.push(id);
-  const query = `
+  const result = await sql`
     UPDATE bamboo_specs
-    SET ${setClauses.join(', ')}
-    WHERE id = $${paramIndex}
+    SET size = ${newSize}, name = ${newName}, remark = ${newRemark}, is_active = ${newIsActive}
+    WHERE id = ${id}
     RETURNING id, size, name, remark, is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
   `;
-
-  const result = await sql(query, values);
   return (result as BambooSpec[])[0] || null;
 }
 

@@ -236,8 +236,13 @@ export default function AttendancePage() {
             >
               <InputNumber min={0} style={{ width: '100%' }} />
             </Form.Item>
-            <Form.Item label="应发工资" name="totalSalary">
-              <InputNumber readOnly style={{ width: '100%' }} addonAfter="元" />
+            <Form.Item label="应发工资">
+              <Space>
+                <Form.Item noStyle name="totalSalary">
+                  <InputNumber readOnly style={{ width: 200 }} />
+                </Form.Item>
+                <span>元</span>
+              </Space>
             </Form.Item>
           </Form>
         )}

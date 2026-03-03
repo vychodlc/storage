@@ -1,17 +1,40 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ProTable, ProColumns } from '@ant-design/pro-components';
 import { Button, Modal, Form, Input, Switch, message, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import type { InboundDriver } from '@/types';
-import { inboundDrivers as mockData } from '@/mock/data';
+import {
+  getInboundDrivers,
+  createInboundDriver,
+  updateInboundDriver,
+  deleteInboundDriver,
+} from '@/app/actions/inboundDriversActions';
 
 export default function InboundDriversPage() {
-  const [data, setData] = useState<InboundDriver[]>(mockData);
+  const [data, setData] = useState<InboundDriver[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<InboundDriver | null>(null);
   const [form] = Form.useForm();
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await getInboundDrivers();
+      setData(result);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      message.error('加载数据失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const columns: ProColumns<InboundDriver>[] = [
     {
@@ -39,7 +62,7 @@ export default function InboundDriversPage() {
     {
       title: '创建时间',
       dataIndex: 'createdAt',
-      valueType: 'date',
+      valueType: 'dateTime',
     },
     {
       title: '操作',
@@ -62,9 +85,15 @@ export default function InboundDriversPage() {
             Modal.confirm({
               title: '确认删除',
               content: `确定要删除司机 "${record.name}" 吗？`,
-              onOk: () => {
-                setData(data.filter((item) => item.id !== record.id));
-                message.success('删除成功');
+              onOk: async () => {
+                try {
+                  await deleteInboundDriver(record.id);
+                  message.success('删除成功');
+                  fetchData();
+                } catch (error) {
+                  console.error('Failed to delete:', error);
+                  message.error('删除失败');
+                }
               },
             });
           }}
@@ -79,30 +108,22 @@ export default function InboundDriversPage() {
     try {
       const values = await form.validateFields();
       if (editingItem) {
-        setData(
-          data.map((item) =>
-            item.id === editingItem.id
-              ? { ...item, ...values, updatedAt: new Date().toISOString().split('T')[0] }
-              : item
-          )
-        );
+        await updateInboundDriver(editingItem.id, values);
         message.success('更新成功');
       } else {
-        const newItem: InboundDriver = {
-          id: Date.now().toString(),
+        await createInboundDriver({
           ...values,
           isLogistics: values.isLogistics ?? false,
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0],
-        };
-        setData([...data, newItem]);
+        });
         message.success('创建成功');
       }
       setModalVisible(false);
       setEditingItem(null);
       form.resetFields();
+      fetchData();
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Submission failed:', error);
+      message.error('操作失败');
     }
   };
 
@@ -113,6 +134,7 @@ export default function InboundDriversPage() {
         columns={columns}
         dataSource={data}
         rowKey="id"
+        loading={loading}
         search={false}
         pagination={{ pageSize: 10 }}
         toolBarRender={() => [

@@ -1,25 +1,40 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ProTable, ProColumns } from '@ant-design/pro-components';
 import { Button, Modal, Form, Input, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import type { Worker } from '@/types';
-import { workers as mockData } from '@/mock/data';
+import {
+  getWorkers,
+  createWorker,
+  updateWorker,
+  deleteWorker,
+} from '@/app/actions/workersActions';
 
 export default function DriverWorkersPage() {
   const [data, setData] = useState<Worker[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<Worker | null>(null);
   const [form] = Form.useForm();
 
-  const driverWorkers = useMemo(() => {
-    return mockData.filter((w) => w.type === 'driver');
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const allWorkers = await getWorkers();
+      setData(allWorkers.filter((w) => w.type === 'driver'));
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      message.error('加载数据失败');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  React.useEffect(() => {
-    setData(driverWorkers);
-  }, [driverWorkers]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const columns: ProColumns<Worker>[] = [
     {
@@ -38,7 +53,7 @@ export default function DriverWorkersPage() {
     {
       title: '创建时间',
       dataIndex: 'createdAt',
-      valueType: 'date',
+      valueType: 'dateTime',
     },
     {
       title: '操作',
@@ -61,9 +76,15 @@ export default function DriverWorkersPage() {
             Modal.confirm({
               title: '确认删除',
               content: `确定要删除司机工 "${record.name}" 吗？`,
-              onOk: () => {
-                setData(data.filter((item) => item.id !== record.id));
-                message.success('删除成功');
+              onOk: async () => {
+                try {
+                  await deleteWorker(record.id);
+                  message.success('删除成功');
+                  fetchData();
+                } catch (error) {
+                  console.error('Failed to delete:', error);
+                  message.error('删除失败');
+                }
               },
             });
           }}
@@ -78,31 +99,23 @@ export default function DriverWorkersPage() {
     try {
       const values = await form.validateFields();
       if (editingItem) {
-        setData(
-          data.map((item) =>
-            item.id === editingItem.id
-              ? { ...item, ...values, updatedAt: new Date().toISOString().split('T')[0] }
-              : item
-          )
-        );
+        await updateWorker(editingItem.id, values);
         message.success('更新成功');
       } else {
-        const newItem: Worker = {
-          id: Date.now().toString(),
+        await createWorker({
           ...values,
           type: 'driver',
           dailyWage: 0,
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0],
-        };
-        setData([...data, newItem]);
+        });
         message.success('创建成功');
       }
       setModalVisible(false);
       setEditingItem(null);
       form.resetFields();
+      fetchData();
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Submission failed:', error);
+      message.error('操作失败');
     }
   };
 
@@ -113,6 +126,7 @@ export default function DriverWorkersPage() {
         columns={columns}
         dataSource={data}
         rowKey="id"
+        loading={loading}
         search={false}
         pagination={{ pageSize: 10 }}
         toolBarRender={() => [

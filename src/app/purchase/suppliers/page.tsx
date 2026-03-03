@@ -1,17 +1,40 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ProTable, ProColumns } from '@ant-design/pro-components';
 import { Button, Modal, Form, Input, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import type { Supplier } from '@/types';
-import { suppliers as mockData } from '@/mock/data';
+import {
+  getSuppliers,
+  createSupplier,
+  updateSupplier,
+  deleteSupplier,
+} from '@/app/actions/suppliersActions';
 
 export default function SuppliersPage() {
-  const [data, setData] = useState<Supplier[]>(mockData);
+  const [data, setData] = useState<Supplier[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<Supplier | null>(null);
   const [form] = Form.useForm();
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await getSuppliers();
+      setData(result);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      message.error('加载数据失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const columns: ProColumns<Supplier>[] = [
     {
@@ -38,7 +61,7 @@ export default function SuppliersPage() {
     {
       title: '创建时间',
       dataIndex: 'createdAt',
-      valueType: 'date',
+      valueType: 'dateTime',
     },
     {
       title: '操作',
@@ -61,9 +84,15 @@ export default function SuppliersPage() {
             Modal.confirm({
               title: '确认删除',
               content: `确定要删除供应商 "${record.name}" 吗？`,
-              onOk: () => {
-                setData(data.filter((item) => item.id !== record.id));
-                message.success('删除成功');
+              onOk: async () => {
+                try {
+                  await deleteSupplier(record.id);
+                  message.success('删除成功');
+                  fetchData();
+                } catch (error) {
+                  console.error('Failed to delete:', error);
+                  message.error('删除失败');
+                }
               },
             });
           }}
@@ -78,29 +107,19 @@ export default function SuppliersPage() {
     try {
       const values = await form.validateFields();
       if (editingItem) {
-        setData(
-          data.map((item) =>
-            item.id === editingItem.id
-              ? { ...item, ...values, updatedAt: new Date().toISOString().split('T')[0] }
-              : item
-          )
-        );
+        await updateSupplier(editingItem.id, values);
         message.success('更新成功');
       } else {
-        const newItem: Supplier = {
-          id: Date.now().toString(),
-          ...values,
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0],
-        };
-        setData([...data, newItem]);
+        await createSupplier(values);
         message.success('创建成功');
       }
       setModalVisible(false);
       setEditingItem(null);
       form.resetFields();
+      fetchData();
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Submission failed:', error);
+      message.error('操作失败');
     }
   };
 
@@ -111,6 +130,7 @@ export default function SuppliersPage() {
         columns={columns}
         dataSource={data}
         rowKey="id"
+        loading={loading}
         search={{
           labelWidth: 'auto',
         }}
@@ -148,9 +168,9 @@ export default function SuppliersPage() {
           <Form.Item
             label="供应商名称"
             name="name"
-            rules={[{ required: true, message: '请输入供应商名称名称' }]}
+            rules={[{ required: true, message: '请输入供应商名称' }]}
           >
-            <Input placeholder="请输入供应商名称名称" />
+            <Input placeholder="请输入供应商名称" />
           </Form.Item>
           <Form.Item label="负责人" name="contactPerson">
             <Input placeholder="负责人" />

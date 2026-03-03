@@ -1,18 +1,42 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ProTable, ProColumns } from '@ant-design/pro-components';
 import { Button, Modal, Form, Select, InputNumber, Input, message, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import type { BambooInventory } from '@/types';
-import { bambooInventory as mockData, bambooSpecs } from '@/mock/data';
+import type { BambooInventory, BambooSpec } from '@/types';
+import { getBambooInventory, adjustBambooInventory } from '@/app/actions/inventoryActions';
+import { getBambooSpecs } from '@/app/actions/bambooSpecsActions';
 
 const LOW_STOCK_THRESHOLD = 50;
 
 export default function BambooInventoryPage() {
-  const [data, setData] = useState<BambooInventory[]>(mockData);
+  const [data, setData] = useState<BambooInventory[]>([]);
+  const [bambooSpecs, setBambooSpecs] = useState<BambooSpec[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [inventory, specs] = await Promise.all([
+        getBambooInventory(),
+        getBambooSpecs(),
+      ]);
+      setData(inventory);
+      setBambooSpecs(specs);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      message.error('加载数据失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const columns: ProColumns<BambooInventory>[] = [
     {
@@ -32,7 +56,7 @@ export default function BambooInventoryPage() {
     {
       title: '更新时间',
       dataIndex: 'updatedAt',
-      valueType: 'date',
+      valueType: 'dateTime',
     },
     {
       title: '操作',
@@ -54,25 +78,14 @@ export default function BambooInventoryPage() {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const selectedSpec = bambooSpecs.find((s) => s.id === values.bambooSpecId);
-
-      setData(
-        data.map((item) => {
-          if (item.bambooSpecId === values.bambooSpecId) {
-            return {
-              ...item,
-              quantity: item.quantity + (values.adjustQuantity || 0),
-              updatedAt: new Date().toISOString().split('T')[0],
-            };
-          }
-          return item;
-        })
-      );
+      await adjustBambooInventory(values.bambooSpecId, values.adjustQuantity || 0);
       message.success('库存调整成功');
       setModalVisible(false);
       form.resetFields();
+      fetchData();
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Submission failed:', error);
+      message.error('操作失败');
     }
   };
 
@@ -83,6 +96,7 @@ export default function BambooInventoryPage() {
         columns={columns}
         dataSource={data}
         rowKey="id"
+        loading={loading}
         search={false}
         pagination={{ pageSize: 10 }}
       />

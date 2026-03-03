@@ -1,17 +1,50 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ProTable, ProColumns } from '@ant-design/pro-components';
 import { Button, Modal, Form, Input, InputNumber, Select, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import type { BOM } from '@/types';
-import { bomList as mockData, bambooSpecs, chopstickSpecs } from '@/mock/data';
+import type { BOM, BambooSpec, ChopstickSpec } from '@/types';
+import {
+  getBOMList,
+  createBOM,
+  updateBOM,
+  deleteBOM,
+} from '@/app/actions/bomActions';
+import { getBambooSpecs } from '@/app/actions/bambooSpecsActions';
+import { getChopstickSpecs } from '@/app/actions/chopstickSpecsActions';
 
 export default function BOMPage() {
-  const [data, setData] = useState<BOM[]>(mockData);
+  const [data, setData] = useState<BOM[]>([]);
+  const [bambooSpecs, setBambooSpecs] = useState<BambooSpec[]>([]);
+  const [chopstickSpecs, setChopstickSpecs] = useState<ChopstickSpec[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<BOM | null>(null);
   const [form] = Form.useForm();
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [bomList, bambooList, chopstickList] = await Promise.all([
+        getBOMList(),
+        getBambooSpecs(),
+        getChopstickSpecs(),
+      ]);
+      setData(bomList);
+      setBambooSpecs(bambooList);
+      setChopstickSpecs(chopstickList);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      message.error('加载数据失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const columns: ProColumns<BOM>[] = [
     {
@@ -34,7 +67,7 @@ export default function BOMPage() {
     {
       title: '创建时间',
       dataIndex: 'createdAt',
-      valueType: 'date',
+      valueType: 'dateTime',
     },
     {
       title: '操作',
@@ -57,9 +90,15 @@ export default function BOMPage() {
             Modal.confirm({
               title: '确认删除',
               content: '确定要删除这条BOM对应关系吗？',
-              onOk: () => {
-                setData(data.filter((item) => item.id !== record.id));
-                message.success('删除成功');
+              onOk: async () => {
+                try {
+                  await deleteBOM(record.id);
+                  message.success('删除成功');
+                  fetchData();
+                } catch (error) {
+                  console.error('Failed to delete:', error);
+                  message.error('删除失败');
+                }
               },
             });
           }}
@@ -76,38 +115,26 @@ export default function BOMPage() {
       const selectedBamboo = bambooSpecs.find((s) => s.id === values.bambooSpecId);
       const selectedChopstick = chopstickSpecs.find((s) => s.id === values.chopstickSpecId);
 
+      const submitData = {
+        ...values,
+        bambooSpecSize: selectedBamboo?.size || '',
+        chopstickSpecSize: selectedChopstick?.size || '',
+      };
+
       if (editingItem) {
-        setData(
-          data.map((item) =>
-            item.id === editingItem.id
-              ? {
-                  ...item,
-                  ...values,
-                  bambooSpecSize: selectedBamboo?.size || '',
-                  chopstickSpecSize: selectedChopstick?.size || '',
-                  updatedAt: new Date().toISOString().split('T')[0],
-                }
-              : item
-          )
-        );
+        await updateBOM(editingItem.id, submitData);
         message.success('更新成功');
       } else {
-        const newItem: BOM = {
-          id: Date.now().toString(),
-          ...values,
-          bambooSpecSize: selectedBamboo?.size || '',
-          chopstickSpecSize: selectedChopstick?.size || '',
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0],
-        };
-        setData([...data, newItem]);
+        await createBOM(submitData);
         message.success('创建成功');
       }
       setModalVisible(false);
       setEditingItem(null);
       form.resetFields();
+      fetchData();
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Submission failed:', error);
+      message.error('操作失败');
     }
   };
 
@@ -118,6 +145,7 @@ export default function BOMPage() {
         columns={columns}
         dataSource={data}
         rowKey="id"
+        loading={loading}
         search={false}
         pagination={{ pageSize: 10 }}
         toolBarRender={() => [

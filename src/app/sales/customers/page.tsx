@@ -1,17 +1,40 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ProTable, ProColumns } from '@ant-design/pro-components';
 import { Button, Modal, Form, Input, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import type { Customer } from '@/types';
-import { customers as mockData } from '@/mock/data';
+import {
+  getCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+} from '@/app/actions/customersActions';
 
 export default function CustomersPage() {
-  const [data, setData] = useState<Customer[]>(mockData);
+  const [data, setData] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<Customer | null>(null);
   const [form] = Form.useForm();
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await getCustomers();
+      setData(result);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      message.error('加载数据失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const columns: ProColumns<Customer>[] = [
     {
@@ -38,7 +61,7 @@ export default function CustomersPage() {
     {
       title: '创建时间',
       dataIndex: 'createdAt',
-      valueType: 'date',
+      valueType: 'dateTime',
     },
     {
       title: '操作',
@@ -61,9 +84,15 @@ export default function CustomersPage() {
             Modal.confirm({
               title: '确认删除',
               content: `确定要删除客户 "${record.name}" 吗？`,
-              onOk: () => {
-                setData(data.filter((item) => item.id !== record.id));
-                message.success('删除成功');
+              onOk: async () => {
+                try {
+                  await deleteCustomer(record.id);
+                  message.success('删除成功');
+                  fetchData();
+                } catch (error) {
+                  console.error('Failed to delete:', error);
+                  message.error('删除失败');
+                }
               },
             });
           }}
@@ -78,29 +107,19 @@ export default function CustomersPage() {
     try {
       const values = await form.validateFields();
       if (editingItem) {
-        setData(
-          data.map((item) =>
-            item.id === editingItem.id
-              ? { ...item, ...values, updatedAt: new Date().toISOString().split('T')[0] }
-              : item
-          )
-        );
+        await updateCustomer(editingItem.id, values);
         message.success('更新成功');
       } else {
-        const newItem: Customer = {
-          id: Date.now().toString(),
-          ...values,
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0],
-        };
-        setData([...data, newItem]);
+        await createCustomer(values);
         message.success('创建成功');
       }
       setModalVisible(false);
       setEditingItem(null);
       form.resetFields();
+      fetchData();
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Submission failed:', error);
+      message.error('操作失败');
     }
   };
 
@@ -111,6 +130,7 @@ export default function CustomersPage() {
         columns={columns}
         dataSource={data}
         rowKey="id"
+        loading={loading}
         search={{
           labelWidth: 'auto',
         }}

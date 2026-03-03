@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import AppLayout from '@/components/Layout';
+import ClientLayout from './ClientLayout';
 
 export const metadata: Metadata = {
   title: 'Storage 工厂生产管理系统',
@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body>
-        <AppLayout>{children}</AppLayout>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
